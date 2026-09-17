@@ -1,4 +1,4 @@
-name: SkyFlow Build
+name: SkyFlow Build & Tests
 
 on:
   push:
@@ -7,7 +7,7 @@ on:
     branches: [ "main" ]
 
 jobs:
-  build:
+  build-and-test:
     runs-on: windows-latest
 
     steps:
@@ -19,8 +19,14 @@ jobs:
         with:
           dotnet-version: '10.0.x'
 
-      - name: Restore dependencies
+      - name: Restore application
         run: dotnet restore SkyFlow/SkyFlow.csproj
 
-      - name: Build SkyFlow
+      - name: Restore tests
+        run: dotnet restore SkyFlow.Tests/SkyFlow.Tests.csproj
+
+      - name: Build application
         run: dotnet build SkyFlow/SkyFlow.csproj --configuration Release --no-restore
+
+      - name: Run automated tests
+        run: dotnet test SkyFlow.Tests/SkyFlow.Tests.csproj --configuration Release --no-restore --verbosity normal

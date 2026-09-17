@@ -6,16 +6,25 @@ namespace SkyFlow.Database
     public static class DatabaseConnection
     {
         private const string DefaultConnectionString =
-            @"Server=(localdb)\MSSQLLocalDB;Database=SkyFlowDB;Trusted_Connection=True;TrustServerCertificate=True;";
+            @"Server=.\SQLEXPRESS;Database=SkyFlowDB;Trusted_Connection=True;TrustServerCertificate=True;";
 
         public static string GetConnectionString()
         {
             string? environmentConnection =
-                Environment.GetEnvironmentVariable("SKYFLOW_CONNECTION_STRING");
+                Environment.GetEnvironmentVariable(
+                    "SKYFLOW_CONNECTION_STRING"
+                );
 
             return string.IsNullOrWhiteSpace(environmentConnection)
                 ? DefaultConnectionString
                 : environmentConnection;
+        }
+
+        public static SqlConnection GetConnection()
+        {
+            return new SqlConnection(
+                GetConnectionString()
+            );
         }
 
         public static bool TestConnection()
@@ -23,18 +32,21 @@ namespace SkyFlow.Database
             try
             {
                 using SqlConnection connection =
-                    new SqlConnection(GetConnectionString());
+                    GetConnection();
 
                 connection.Open();
 
-                Console.WriteLine("✓ Database connected successfully!");
+                Console.WriteLine(
+                    "✓ Connected to SkyFlowDB successfully!"
+                );
 
                 return true;
             }
             catch (SqlException ex)
             {
                 Console.WriteLine(
-                    $"✗ Database connection failed: {ex.Message}");
+                    $"✗ Database connection failed: {ex.Message}"
+                );
 
                 return false;
             }

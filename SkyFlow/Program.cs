@@ -8,53 +8,80 @@ namespace SkyFlow
 {
     class Program
     {
-        static readonly UserRepository userRepo = new UserRepository();
-        static readonly FlightRepository flightRepo = new FlightRepository();
-        static readonly BookingRepository bookingRepo = new BookingRepository();
-        static readonly PassengerRepository passengerRepo = new PassengerRepository();
+        // SQL-backed repositories used by the running application.
+        static SqlUserRepository userRepo =
+            new SqlUserRepository();
 
-        static User? currentUser;
+        static SqlFlightRepository flightRepo =
+            new SqlFlightRepository();
+
+        static SqlBookingRepository bookingRepo =
+            new SqlBookingRepository();
+
+        static SqlPassengerRepository passengerRepo =
+            new SqlPassengerRepository();
+
+        static User? currentUser = null;
 
         static void Main(string[] args)
         {
-            Console.Title = "SkyFlow Airport Management System";
-            Console.ForegroundColor = ConsoleColor.Cyan;
+            Console.Title =
+                "SkyFlow Airport Management System";
+
+            Console.ForegroundColor =
+                ConsoleColor.Cyan;
+
+            if (!DatabaseConnection.TestConnection())
+            {
+                Console.WriteLine();
+
+                Console.WriteLine(
+                    "Unable to start SkyFlow because the database is unavailable."
+                );
+
+                Console.WriteLine(
+                    "Press any key to exit..."
+                );
+
+                Console.ReadKey();
+                return;
+            }
+
+            DatabaseSeeder.SeedUsers();
 
             while (true)
             {
                 ShowLoginScreen();
 
                 if (currentUser == null)
-                {
                     continue;
-                }
 
                 currentUser.ShowWelcomeMessage();
 
-                Console.WriteLine("\nPress any key to continue...");
+                Console.WriteLine(
+                    "\nPress any key to continue..."
+                );
+
                 Console.ReadKey();
 
                 bool running = true;
 
-                while (running && currentUser != null)
+                while (running)
                 {
                     currentUser.DisplayDashboard();
 
-                    string input =
-                        Console.ReadLine()?.Trim() ?? string.Empty;
+                    string? input =
+                        Console.ReadLine();
 
                     if (currentUser is Admin)
                     {
-                        running = HandleAdminMenu(input);
+                        running =
+                            HandleAdminMenu(input);
                     }
                     else if (currentUser is GateAgent)
                     {
-                        running = HandleGateAgentMenu(input);
-                    }
-                    else
-                    {
-                        currentUser = null;
-                        running = false;
+                        running =
+                            HandleGateAgentMenu(input);
                     }
                 }
             }
@@ -64,50 +91,78 @@ namespace SkyFlow
         {
             Console.Clear();
 
-            Console.WriteLine("========================================");
-            Console.WriteLine("       SKYFLOW AIRPORT SYSTEM           ");
-            Console.WriteLine("            LOGIN PORTAL                ");
-            Console.WriteLine("========================================");
-            Console.WriteLine("  Demo Credentials:                     ");
-            Console.WriteLine("  Admin:   admin / admin123             ");
-            Console.WriteLine("  Agent:   agent1 / agent123            ");
-            Console.WriteLine("========================================\n");
+            Console.WriteLine(
+                "========================================"
+            );
+
+            Console.WriteLine(
+                "       SKYFLOW AIRPORT SYSTEM           "
+            );
+
+            Console.WriteLine(
+                "            LOGIN PORTAL                "
+            );
+
+            Console.WriteLine(
+                "========================================"
+            );
+
+            Console.WriteLine(
+                "  Demo Credentials:                     "
+            );
+
+            Console.WriteLine(
+                "  Admin:   admin / admin123             "
+            );
+
+            Console.WriteLine(
+                "  Agent:   agent1 / agent123            "
+            );
+
+            Console.WriteLine(
+                "========================================\n"
+            );
 
             Console.Write("  Username: ");
 
             string username =
-                Console.ReadLine()?.Trim() ?? string.Empty;
+                Console.ReadLine()?.Trim() ?? "";
 
             Console.Write("  Password: ");
 
-            string password = ReadPassword();
+            string password =
+                ReadPassword();
 
             if (string.IsNullOrWhiteSpace(username) ||
                 string.IsNullOrWhiteSpace(password))
             {
                 Console.WriteLine(
-                    "\n Username and password are required.");
+                    "\n Username and password are required!"
+                );
 
                 Console.WriteLine(
-                    "\nPress any key to try again...");
+                    "\nPress any key to try again..."
+                );
 
                 Console.ReadKey();
-
-                currentUser = null;
-
                 return;
             }
 
             currentUser =
-                userRepo.Authenticate(username, password);
+                userRepo.Authenticate(
+                    username,
+                    password
+                );
 
             if (currentUser == null)
             {
                 Console.WriteLine(
-                    "\n Invalid username or password!");
+                    "\n Invalid username or password!"
+                );
 
                 Console.WriteLine(
-                    "\nPress any key to try again...");
+                    "\nPress any key to try again..."
+                );
 
                 Console.ReadKey();
             }
@@ -115,40 +170,46 @@ namespace SkyFlow
 
         static string ReadPassword()
         {
-            string password = string.Empty;
+            string password = "";
 
-            ConsoleKeyInfo key;
-
-            do
+            while (true)
             {
-                key = Console.ReadKey(true);
+                ConsoleKeyInfo key =
+                    Console.ReadKey(true);
 
-                if (key.Key != ConsoleKey.Backspace &&
-                    key.Key != ConsoleKey.Enter)
+                if (key.Key == ConsoleKey.Enter)
+                {
+                    Console.WriteLine();
+                    break;
+                }
+
+                if (key.Key == ConsoleKey.Backspace)
+                {
+                    if (password.Length > 0)
+                    {
+                        password =
+                            password.Substring(
+                                0,
+                                password.Length - 1
+                            );
+
+                        Console.Write("\b \b");
+                    }
+
+                    continue;
+                }
+
+                if (!char.IsControl(key.KeyChar))
                 {
                     password += key.KeyChar;
-
                     Console.Write("*");
                 }
-                else if (key.Key == ConsoleKey.Backspace &&
-                         password.Length > 0)
-                {
-                    password =
-                        password.Substring(
-                            0,
-                            password.Length - 1);
-
-                    Console.Write("\b \b");
-                }
-
-            } while (key.Key != ConsoleKey.Enter);
-
-            Console.WriteLine();
+            }
 
             return password;
         }
 
-        static bool HandleAdminMenu(string option)
+        static bool HandleAdminMenu(string? option)
         {
             switch (option)
             {
@@ -165,18 +226,19 @@ namespace SkyFlow
                     break;
 
                 case "4":
-                    Console.WriteLine("\nLogging out...");
+                    Console.WriteLine(
+                        "\nLogging out..."
+                    );
 
                     currentUser = null;
-
                     return false;
 
                 default:
                     Console.WriteLine(
-                        "Invalid option. Press any key to continue...");
+                        "Invalid option. Press any key to continue..."
+                    );
 
                     Console.ReadKey();
-
                     break;
             }
 
@@ -194,40 +256,49 @@ namespace SkyFlow
 
                 RenderFlightTable(flights);
 
-                Console.WriteLine(
-                    "\n========================================");
+                Console.WriteLine();
 
                 Console.WriteLine(
-                    "  Flight Management                     ");
+                    "========================================"
+                );
 
                 Console.WriteLine(
-                    "========================================");
+                    "  Flight Management                     "
+                );
 
                 Console.WriteLine(
-                    "  1. Add New Flight                     ");
+                    "========================================"
+                );
 
                 Console.WriteLine(
-                    "  2. Update Flight Status               ");
+                    "  1. Add New Flight                     "
+                );
 
                 Console.WriteLine(
-                    "  3. Delete Flight                      ");
+                    "  2. Update Flight Status               "
+                );
 
                 Console.WriteLine(
-                    "  4. Back to Main Menu                  ");
+                    "  3. Delete Flight                      "
+                );
 
                 Console.WriteLine(
-                    "========================================");
+                    "  4. Back to Main Menu                  "
+                );
 
-                Console.Write("\nSelect option: ");
+                Console.WriteLine(
+                    "========================================"
+                );
 
-                string choice =
-                    Console.ReadLine()?.Trim()
-                    ?? string.Empty;
+                Console.Write(
+                    "\nSelect option: "
+                );
+
+                string? choice =
+                    Console.ReadLine();
 
                 if (choice == "4")
-                {
                     break;
-                }
 
                 switch (choice)
                 {
@@ -245,10 +316,10 @@ namespace SkyFlow
 
                     default:
                         Console.WriteLine(
-                            "Invalid option!");
+                            "Invalid option!"
+                        );
 
                         Console.ReadKey();
-
                         break;
                 }
             }
@@ -259,14 +330,19 @@ namespace SkyFlow
         {
             Console.Clear();
 
-            Console.WriteLine(
-                "\n========================================");
+            Console.WriteLine();
 
             Console.WriteLine(
-                "         SKYFLOW FLIGHT SCHEDULE          ");
+                "========================================"
+            );
 
             Console.WriteLine(
-                "========================================\n");
+                "         SKYFLOW FLIGHT SCHEDULE        "
+            );
+
+            Console.WriteLine(
+                "========================================\n"
+            );
 
             Console.WriteLine(
                 $"{"Flight #",-10} " +
@@ -275,16 +351,19 @@ namespace SkyFlow
                 $"{"Departure Time",-20} " +
                 $"{"Capacity",-10} " +
                 $"{"Available",-10} " +
-                $"{"Status",-15}");
+                $"{"Status",-15}"
+            );
 
             Console.WriteLine(
-                new string('-', 90));
+                new string('-', 90)
+            );
 
             foreach (Flight flight in flights)
             {
                 string departureTime =
                     flight.DepartureTime.ToString(
-                        "yyyy-MM-dd HH:mm");
+                        "yyyy-MM-dd HH:mm"
+                    );
 
                 Console.WriteLine(
                     $"{flight.FlightNumber,-10} " +
@@ -293,11 +372,15 @@ namespace SkyFlow
                     $"{departureTime,-20} " +
                     $"{flight.AircraftCapacity,-10} " +
                     $"{flight.AvailableSeats,-10} " +
-                    $"{flight.Status,-15}");
+                    $"{flight.Status,-15}"
+                );
             }
 
+            Console.WriteLine();
+
             Console.WriteLine(
-                "\n========================================");
+                "========================================"
+            );
         }
 
         static void AddNewFlight()
@@ -305,152 +388,173 @@ namespace SkyFlow
             Console.Clear();
 
             Console.WriteLine(
-                "========================================");
+                "========================================"
+            );
 
             Console.WriteLine(
-                "         ADD NEW FLIGHT                 ");
+                "         ADD NEW FLIGHT                 "
+            );
 
             Console.WriteLine(
-                "========================================\n");
+                "========================================\n"
+            );
 
             Console.Write(
-                "Flight Number (e.g., SF999): ");
+                "Flight Number (e.g., SF999): "
+            );
 
             string flightNumber =
-                Console.ReadLine()?.Trim().ToUpper()
-                ?? string.Empty;
+                Console.ReadLine()?
+                    .Trim()
+                    .ToUpper() ?? "";
 
             Console.Write(
-                "Origin (e.g., JHB, CPT, DBN): ");
+                "Origin (e.g., JHB, CPT, DBN): "
+            );
 
             string origin =
-                Console.ReadLine()?.Trim().ToUpper()
-                ?? string.Empty;
+                Console.ReadLine()?
+                    .Trim()
+                    .ToUpper() ?? "";
 
-            Console.Write("Destination: ");
+            Console.Write(
+                "Destination: "
+            );
 
             string destination =
-                Console.ReadLine()?.Trim().ToUpper()
-                ?? string.Empty;
+                Console.ReadLine()?
+                    .Trim()
+                    .ToUpper() ?? "";
 
             if (string.IsNullOrWhiteSpace(flightNumber) ||
                 string.IsNullOrWhiteSpace(origin) ||
                 string.IsNullOrWhiteSpace(destination))
             {
                 Console.WriteLine(
-                    "\n Flight number, origin and destination are required.");
-
-                Console.WriteLine(
-                    "\nPress any key to continue...");
+                    "\n Flight number, origin and destination are required."
+                );
 
                 Console.ReadKey();
-
                 return;
             }
 
-            if (origin == destination)
+            if (origin.Equals(
+                    destination,
+                    StringComparison.OrdinalIgnoreCase))
             {
                 Console.WriteLine(
-                    "\n Origin and destination cannot be the same.");
-
-                Console.WriteLine(
-                    "\nPress any key to continue...");
+                    "\n Origin and destination cannot be the same."
+                );
 
                 Console.ReadKey();
-
                 return;
             }
 
-            bool duplicateFlight =
-                flightRepo.GetAll().Any(
-                    f => f.FlightNumber.Equals(
-                        flightNumber,
-                        StringComparison.OrdinalIgnoreCase));
+            Flight? existingFlight =
+                flightRepo.GetByFlightNumber(
+                    flightNumber
+                );
 
-            if (duplicateFlight)
+            if (existingFlight != null)
             {
                 Console.WriteLine(
-                    "\n A flight with that number already exists.");
-
-                Console.WriteLine(
-                    "\nPress any key to continue...");
+                    "\n A flight with that number already exists."
+                );
 
                 Console.ReadKey();
-
                 return;
             }
 
             Console.Write(
-                "Departure Date (yyyy-mm-dd): ");
+                "Departure Date (yyyy-mm-dd): "
+            );
 
             string date =
-                Console.ReadLine()?.Trim()
-                ?? string.Empty;
+                Console.ReadLine()?.Trim() ?? "";
 
             Console.Write(
-                "Departure Time (HH:MM): ");
+                "Departure Time (HH:MM): "
+            );
 
             string time =
-                Console.ReadLine()?.Trim()
-                ?? string.Empty;
+                Console.ReadLine()?.Trim() ?? "";
 
             if (!DateTime.TryParse(
                     $"{date} {time}",
                     out DateTime departureTime))
             {
                 Console.WriteLine(
-                    "\n Invalid departure date or time.");
-
-                Console.WriteLine(
-                    "\nPress any key to continue...");
+                    "\n Invalid departure date or time."
+                );
 
                 Console.ReadKey();
-
                 return;
             }
 
             Console.Write(
-                "Aircraft Capacity: ");
-
-            string capacityInput =
-                Console.ReadLine()?.Trim()
-                ?? string.Empty;
+                "Aircraft Capacity: "
+            );
 
             if (!int.TryParse(
-                    capacityInput,
+                    Console.ReadLine(),
                     out int capacity) ||
                 capacity <= 0)
             {
                 Console.WriteLine(
-                    "\n Aircraft capacity must be a positive number.");
-
-                Console.WriteLine(
-                    "\nPress any key to continue...");
+                    "\n Aircraft capacity must be greater than zero."
+                );
 
                 Console.ReadKey();
-
                 return;
             }
 
             Flight newFlight =
                 new Flight
                 {
-                    FlightNumber = flightNumber,
-                    Origin = origin,
-                    Destination = destination,
-                    DepartureTime = departureTime,
-                    AircraftCapacity = capacity,
-                    AvailableSeats = capacity,
-                    Status = "Scheduled"
+                    FlightNumber =
+                        flightNumber,
+
+                    Origin =
+                        origin,
+
+                    Destination =
+                        destination,
+
+                    DepartureTime =
+                        departureTime,
+
+                    AircraftCapacity =
+                        capacity,
+
+                    AvailableSeats =
+                        capacity,
+
+                    Status =
+                        "Scheduled"
                 };
 
-            flightRepo.Add(newFlight);
+            try
+            {
+                flightRepo.Add(newFlight);
+
+                Console.WriteLine(
+                    "\n Flight added successfully!"
+                );
+
+                Console.WriteLine(
+                    $" Flight ID: {newFlight.FlightID}"
+                );
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(
+                    $"\n Unable to add flight: {ex.Message}"
+                );
+            }
 
             Console.WriteLine(
-                "\n Flight added successfully!");
-
-            Console.WriteLine(
-                "\nPress any key to continue...");
+                "\nPress any key to continue..."
+            );
 
             Console.ReadKey();
         }
@@ -463,30 +567,32 @@ namespace SkyFlow
             RenderFlightTable(flights);
 
             Console.Write(
-                "\nEnter Flight Number to update: ");
+                "\nEnter Flight Number to update: "
+            );
 
             string flightNum =
-                Console.ReadLine()?.Trim().ToUpper()
-                ?? string.Empty;
+                Console.ReadLine()?
+                    .Trim()
+                    .ToUpper() ?? "";
 
             Flight? flight =
-                flights.FirstOrDefault(
-                    f => f.FlightNumber.Equals(
-                        flightNum,
-                        StringComparison.OrdinalIgnoreCase));
+                flightRepo.GetByFlightNumber(
+                    flightNum
+                );
 
             if (flight == null)
             {
                 Console.WriteLine(
-                    " Flight not found!");
+                    " Flight not found!"
+                );
 
                 Console.ReadKey();
-
                 return;
             }
 
             Console.WriteLine(
-                "\nSelect new status:");
+                "\nSelect new status:"
+            );
 
             Console.WriteLine("1. Scheduled");
             Console.WriteLine("2. Boarding");
@@ -494,9 +600,8 @@ namespace SkyFlow
 
             Console.Write("Choice: ");
 
-            string choice =
-                Console.ReadLine()?.Trim()
-                ?? string.Empty;
+            string? choice =
+                Console.ReadLine();
 
             string? status =
                 choice switch
@@ -510,20 +615,36 @@ namespace SkyFlow
             if (status == null)
             {
                 Console.WriteLine(
-                    "\n Invalid status selection.");
+                    "\n Invalid status selection."
+                );
 
                 Console.ReadKey();
-
                 return;
             }
 
-            flight.Status = status;
+            flight.Status =
+                status;
 
-            flightRepo.Update(flight);
+            try
+            {
+                flightRepo.Update(
+                    flight
+                );
 
-            Console.WriteLine(
-                $"\n Flight {flight.FlightNumber} " +
-                $"status updated to {status}");
+                Console.WriteLine(
+                    $"\n Flight " +
+                    $"{flight.FlightNumber} " +
+                    $"status updated to " +
+                    $"{status}"
+                );
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(
+                    $"\n Unable to update flight: " +
+                    $"{ex.Message}"
+                );
+            }
 
             Console.ReadKey();
         }
@@ -536,48 +657,65 @@ namespace SkyFlow
             RenderFlightTable(flights);
 
             Console.Write(
-                "\nEnter Flight Number to delete: ");
+                "\nEnter Flight Number to delete: "
+            );
 
             string flightNum =
-                Console.ReadLine()?.Trim().ToUpper()
-                ?? string.Empty;
+                Console.ReadLine()?
+                    .Trim()
+                    .ToUpper() ?? "";
 
             Flight? flight =
-                flights.FirstOrDefault(
-                    f => f.FlightNumber.Equals(
-                        flightNum,
-                        StringComparison.OrdinalIgnoreCase));
+                flightRepo.GetByFlightNumber(
+                    flightNum
+                );
 
             if (flight == null)
             {
                 Console.WriteLine(
-                    " Flight not found!");
+                    " Flight not found!"
+                );
 
                 Console.ReadKey();
-
                 return;
             }
 
             Console.Write(
                 $"Are you sure you want to delete " +
-                $"flight {flightNum}? (Y/N): ");
+                $"flight {flightNum}? (Y/N): "
+            );
 
             string confirmation =
-                Console.ReadLine()?.Trim().ToUpper()
-                ?? string.Empty;
+                Console.ReadLine()?
+                    .Trim()
+                    .ToUpper() ?? "";
 
-            if (confirmation == "Y")
+            if (confirmation != "Y")
+            {
+                Console.WriteLine(
+                    " Delete cancelled."
+                );
+
+                Console.ReadKey();
+                return;
+            }
+
+            try
             {
                 flightRepo.Delete(
-                    flight.FlightID);
+                    flight.FlightID
+                );
 
                 Console.WriteLine(
-                    " Flight deleted!");
+                    " Flight deleted!"
+                );
             }
-            else
+            catch (Exception ex)
             {
                 Console.WriteLine(
-                    " Flight deletion cancelled.");
+                    $"\n Unable to delete flight: " +
+                    $"{ex.Message}"
+                );
             }
 
             Console.ReadKey();
@@ -594,43 +732,61 @@ namespace SkyFlow
                 bookingRepo.GetAll().ToList();
 
             Console.WriteLine(
-                "========================================");
+                "========================================"
+            );
 
             Console.WriteLine(
-                "              SYSTEM OVERVIEW           ");
+                "              SYSTEM OVERVIEW           "
+            );
 
             Console.WriteLine(
-                "========================================\n");
+                "========================================\n"
+            );
 
             Console.WriteLine(
-                $"Total Flights: {flights.Count}");
+                $"Total Flights: {flights.Count}"
+            );
 
             Console.WriteLine(
-                $"Total Bookings: {bookings.Count}");
+                $"Total Bookings: {bookings.Count}"
+            );
 
             Console.WriteLine(
-                "\nFlights by Status:");
+                "\nFlights by Status:"
+            );
 
             Console.WriteLine(
                 $"  - Scheduled: " +
-                $"{flights.Count(f => f.Status == "Scheduled")}");
+                $"{flights.Count(
+                    f => f.Status == "Scheduled"
+                )}"
+            );
 
             Console.WriteLine(
                 $"  - Boarding:  " +
-                $"{flights.Count(f => f.Status == "Boarding")}");
+                $"{flights.Count(
+                    f => f.Status == "Boarding"
+                )}"
+            );
 
             Console.WriteLine(
                 $"  - Departed:  " +
-                $"{flights.Count(f => f.Status == "Departed")}");
+                $"{flights.Count(
+                    f => f.Status == "Departed"
+                )}"
+            );
 
             int totalCapacity =
                 flights.Sum(
-                    f => f.AircraftCapacity);
+                    f => f.AircraftCapacity
+                );
 
             int totalBooked =
                 flights.Sum(
-                    f => f.AircraftCapacity -
-                         f.AvailableSeats);
+                    f =>
+                        f.AircraftCapacity -
+                        f.AvailableSeats
+                );
 
             double occupancyRate =
                 totalCapacity > 0
@@ -640,10 +796,12 @@ namespace SkyFlow
 
             Console.WriteLine(
                 $"\nOverall Occupancy Rate: " +
-                $"{occupancyRate:F1}%");
+                $"{occupancyRate:F1}%"
+            );
 
             Console.WriteLine(
-                "\nPress any key to continue...");
+                "\nPress any key to continue..."
+            );
 
             Console.ReadKey();
         }
@@ -657,23 +815,30 @@ namespace SkyFlow
                 List<User> users =
                     userRepo.GetAll().ToList();
 
-                Console.WriteLine(
-                    "\n========================================");
+                Console.WriteLine();
 
                 Console.WriteLine(
-                    "              STAFF DIRECTORY           ");
+                    "========================================"
+                );
 
                 Console.WriteLine(
-                    "========================================\n");
+                    "              STAFF DIRECTORY           "
+                );
+
+                Console.WriteLine(
+                    "========================================\n"
+                );
 
                 Console.WriteLine(
                     $"{"ID",-5} " +
                     $"{"Username",-15} " +
                     $"{"Full Name",-25} " +
-                    $"{"Role",-12}");
+                    $"{"Role",-12}"
+                );
 
                 Console.WriteLine(
-                    new string('-', 60));
+                    new string('-', 60)
+                );
 
                 foreach (User user in users)
                 {
@@ -681,157 +846,200 @@ namespace SkyFlow
                         $"{user.UserID,-5} " +
                         $"{user.Username,-15} " +
                         $"{user.FullName,-25} " +
-                        $"{user.Role,-12}");
+                        $"{user.Role,-12}"
+                    );
                 }
 
-                Console.WriteLine(
-                    "\n========================================");
+                Console.WriteLine();
 
                 Console.WriteLine(
-                    "  Staff Management                      ");
+                    "========================================"
+                );
 
                 Console.WriteLine(
-                    "========================================");
+                    "  Staff Management                      "
+                );
 
                 Console.WriteLine(
-                    "  1. Add New Staff Member               ");
+                    "========================================"
+                );
 
                 Console.WriteLine(
-                    "  2. Back to Main Menu                  ");
+                    "  1. Add New Staff Member               "
+                );
 
                 Console.WriteLine(
-                    "========================================");
+                    "  2. Back to Main Menu                  "
+                );
+
+                Console.WriteLine(
+                    "========================================"
+                );
 
                 Console.Write(
-                    "\nSelect option: ");
+                    "\nSelect option: "
+                );
 
-                string choice =
-                    Console.ReadLine()?.Trim()
-                    ?? string.Empty;
+                string? choice =
+                    Console.ReadLine();
 
                 if (choice == "2")
-                {
                     break;
-                }
 
                 if (choice != "1")
                 {
                     Console.WriteLine(
-                        "\nInvalid option.");
+                        "Invalid option."
+                    );
 
                     Console.ReadKey();
-
                     continue;
                 }
 
                 Console.Clear();
 
                 Console.WriteLine(
-                    "========================================");
+                    "========================================"
+                );
 
                 Console.WriteLine(
-                    "         ADD NEW STAFF MEMBER           ");
+                    "         ADD NEW STAFF MEMBER           "
+                );
 
                 Console.WriteLine(
-                    "========================================\n");
+                    "========================================\n"
+                );
 
-                Console.Write("Username: ");
+                Console.Write(
+                    "Username: "
+                );
 
                 string username =
-                    Console.ReadLine()?.Trim()
-                    ?? string.Empty;
+                    Console.ReadLine()?
+                        .Trim() ?? "";
 
-                Console.Write("Full Name: ");
+                Console.Write(
+                    "Full Name: "
+                );
 
                 string fullName =
-                    Console.ReadLine()?.Trim()
-                    ?? string.Empty;
+                    Console.ReadLine()?
+                        .Trim() ?? "";
 
-                Console.Write("Password: ");
+                Console.Write(
+                    "Password: "
+                );
 
                 string password =
                     ReadPassword();
 
                 Console.Write(
-                    "Role (Admin/GateAgent): ");
+                    "Role (Admin/GateAgent): "
+                );
 
                 string role =
-                    Console.ReadLine()?.Trim()
-                    ?? string.Empty;
+                    Console.ReadLine()?
+                        .Trim() ?? "";
 
                 if (string.IsNullOrWhiteSpace(username) ||
                     string.IsNullOrWhiteSpace(fullName) ||
                     string.IsNullOrWhiteSpace(password))
                 {
                     Console.WriteLine(
-                        "\n All fields are required.");
+                        "\n All fields are required."
+                    );
 
                     Console.ReadKey();
-
                     continue;
                 }
 
-                if (userRepo.GetAll().Any(
-                    u => u.Username.Equals(
-                        username,
-                        StringComparison.OrdinalIgnoreCase)))
+                bool usernameExists =
+                    users.Any(
+                        u =>
+                            u.Username.Equals(
+                                username,
+                                StringComparison.OrdinalIgnoreCase
+                            )
+                    );
+
+                if (usernameExists)
                 {
                     Console.WriteLine(
-                        "\n Username already exists.");
+                        "\n Username already exists."
+                    );
 
                     Console.ReadKey();
-
                     continue;
                 }
 
                 User newUser;
 
                 if (role.Equals(
-                    "Admin",
-                    StringComparison.OrdinalIgnoreCase))
+                        "Admin",
+                        StringComparison.OrdinalIgnoreCase))
                 {
-                    newUser = new Admin();
+                    newUser =
+                        new Admin();
 
-                    role = "Admin";
+                    role =
+                        "Admin";
                 }
                 else if (role.Equals(
-                    "GateAgent",
-                    StringComparison.OrdinalIgnoreCase))
+                        "GateAgent",
+                        StringComparison.OrdinalIgnoreCase))
                 {
-                    newUser = new GateAgent();
+                    newUser =
+                        new GateAgent();
 
-                    role = "GateAgent";
+                    role =
+                        "GateAgent";
                 }
                 else
                 {
                     Console.WriteLine(
-                        "\n Role must be Admin or GateAgent.");
+                        "\n Role must be Admin or GateAgent."
+                    );
 
                     Console.ReadKey();
-
                     continue;
                 }
 
-                newUser.Username = username;
-                newUser.FullName = fullName;
+                newUser.Username =
+                    username;
 
-                // UserRepository hashes the password
-                // before storing it.
-                newUser.PasswordHash = password;
+                newUser.FullName =
+                    fullName;
 
-                newUser.Role = role;
+                newUser.PasswordHash =
+                    password;
 
-                userRepo.Add(newUser);
+                newUser.Role =
+                    role;
 
-                Console.WriteLine(
-                    "\n Staff member added!");
+                try
+                {
+                    userRepo.Add(
+                        newUser
+                    );
+
+                    Console.WriteLine(
+                        "\n Staff member added successfully!"
+                    );
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine(
+                        $"\n Unable to add staff member: " +
+                        $"{ex.Message}"
+                    );
+                }
 
                 Console.ReadKey();
             }
         }
 
         static bool HandleGateAgentMenu(
-            string option)
+            string? option)
         {
             switch (option)
             {
@@ -849,7 +1057,8 @@ namespace SkyFlow
 
                 case "4":
                     Console.WriteLine(
-                        "\nLogging out...");
+                        "\nLogging out..."
+                    );
 
                     currentUser = null;
 
@@ -857,7 +1066,8 @@ namespace SkyFlow
 
                 default:
                     Console.WriteLine(
-                        "Invalid option.");
+                        "Invalid option."
+                    );
 
                     Console.ReadKey();
 
@@ -874,42 +1084,47 @@ namespace SkyFlow
             List<Flight> flights =
                 flightRepo.GetAll().ToList();
 
-            RenderFlightTable(flights);
+            RenderFlightTable(
+                flights
+            );
 
             Console.Write(
-                "\nEnter Flight Number to view manifest: ");
+                "\nEnter Flight Number to view manifest: "
+            );
 
             string flightNum =
-                Console.ReadLine()?.Trim().ToUpper()
-                ?? string.Empty;
+                Console.ReadLine()?
+                    .Trim()
+                    .ToUpper() ?? "";
 
             Flight? flight =
-                flights.FirstOrDefault(
-                    f => f.FlightNumber.Equals(
-                        flightNum,
-                        StringComparison.OrdinalIgnoreCase));
+                flightRepo.GetByFlightNumber(
+                    flightNum
+                );
 
             if (flight == null)
             {
                 Console.WriteLine(
-                    " Flight not found!");
+                    " Flight not found!"
+                );
 
                 Console.ReadKey();
-
                 return;
             }
 
             List<Booking> bookings =
                 bookingRepo
                     .GetBookingsByFlight(
-                        flight.FlightID)
+                        flight.FlightID
+                    )
                     .ToList();
 
             if (!bookings.Any())
             {
                 Console.WriteLine(
-                    $"\nNo passengers booked on " +
-                    $"flight {flightNum}");
+                    $"\nNo passengers booked " +
+                    $"on flight {flightNum}"
+                );
             }
             else
             {
@@ -917,16 +1132,19 @@ namespace SkyFlow
                     $"\n========== FLIGHT MANIFEST - " +
                     $"{flightNum} " +
                     $"({flight.Origin} to " +
-                    $"{flight.Destination}) ==========\n");
+                    $"{flight.Destination}) ==========\n"
+                );
 
                 Console.WriteLine(
                     $"{"Booking ID",-12} " +
                     $"{"Passenger Name",-25} " +
                     $"{"Seat",-8} " +
-                    $"{"Status",-12}");
+                    $"{"Status",-12}"
+                );
 
                 Console.WriteLine(
-                    new string('-', 60));
+                    new string('-', 60)
+                );
 
                 foreach (Booking booking in bookings)
                 {
@@ -934,12 +1152,14 @@ namespace SkyFlow
                         $"{booking.BookingID,-12} " +
                         $"{booking.PassengerName,-25} " +
                         $"{booking.SeatNumber,-8} " +
-                        $"{booking.Status,-12}");
+                        $"{booking.Status,-12}"
+                    );
                 }
             }
 
             Console.WriteLine(
-                "\nPress any key to continue...");
+                "\nPress any key to continue..."
+            );
 
             Console.ReadKey();
         }
@@ -949,28 +1169,32 @@ namespace SkyFlow
             Console.Clear();
 
             Console.WriteLine(
-                "========================================");
+                "========================================"
+            );
 
             Console.WriteLine(
-                "         PASSENGER CHECK-IN             ");
+                "         PASSENGER CHECK-IN             "
+            );
 
             Console.WriteLine(
-                "========================================\n");
+                "========================================\n"
+            );
 
             Console.Write(
-                "Enter Passenger ID or Passport Number: ");
+                "Enter Passenger ID or Passport Number: "
+            );
 
             string search =
-                Console.ReadLine()?.Trim()
-                ?? string.Empty;
+                Console.ReadLine()?
+                    .Trim() ?? "";
 
             if (string.IsNullOrWhiteSpace(search))
             {
                 Console.WriteLine(
-                    "\n Passenger ID or passport number is required.");
+                    " Passenger ID or passport number is required."
+                );
 
                 Console.ReadKey();
-
                 return;
             }
 
@@ -982,67 +1206,78 @@ namespace SkyFlow
             {
                 passenger =
                     passengerRepo.GetById(
-                        passengerId);
+                        passengerId
+                    );
             }
             else
             {
                 passenger =
                     passengerRepo.GetByPassport(
-                        search);
+                        search
+                    );
             }
 
             if (passenger == null)
             {
                 Console.WriteLine(
-                    " Passenger not found!");
+                    " Passenger not found!"
+                );
 
                 Console.ReadKey();
-
                 return;
             }
 
             Console.WriteLine(
                 $"\n Passenger found: " +
-                $"{passenger.FullName}");
+                $"{passenger.FullName}"
+            );
 
             Console.WriteLine(
                 $"  Passport: " +
-                $"{passenger.PassportNumber}");
+                $"{passenger.PassportNumber}"
+            );
 
             Console.WriteLine(
-                $"  Email: {passenger.Email}");
+                $"  Email: " +
+                $"{passenger.Email}"
+            );
 
             Console.WriteLine(
-                $"  Phone: {passenger.PhoneNumber}");
+                $"  Phone: " +
+                $"{passenger.PhoneNumber}"
+            );
 
             List<Booking> allBookings =
-                bookingRepo.GetAll()
-                    .Where(
-                        b => b.PassengerID ==
-                             passenger.PassengerID)
+                bookingRepo
+                    .GetBookingsByPassenger(
+                        passenger.PassengerID
+                    )
                     .ToList();
 
             if (!allBookings.Any())
             {
                 Console.WriteLine(
-                    "\nNo bookings found for this passenger.");
+                    "\nNo bookings found for this passenger."
+                );
 
                 Console.ReadKey();
-
                 return;
             }
 
             Console.WriteLine(
-                "\n========== PASSENGER BOOKINGS ==========\n");
+                "\n========== PASSENGER BOOKINGS ==========\n"
+            );
 
             Console.WriteLine(
                 $"{"Booking ID",-12} " +
                 $"{"Flight",-10} " +
                 $"{"Seat",-8} " +
-                $"{"Status",-12}");
+                $"{"Status",-12}"
+            );
 
             Console.WriteLine(
-                new string('-', 45));
+                new string('-', 45)
+            );
 
             foreach (Booking booking in allBookings)
             {
@@ -1050,39 +1285,40 @@ namespace SkyFlow
                     $"{booking.BookingID,-12} " +
                     $"{booking.FlightNumber,-10} " +
                     $"{booking.SeatNumber,-8} " +
-                    $"{booking.Status,-12}");
+                    $"{booking.Status,-12}"
+                );
             }
 
             Console.Write(
-                "\nEnter Booking ID to check in: ");
-
-            string bookingInput =
-                Console.ReadLine()?.Trim()
-                ?? string.Empty;
+                "\nEnter Booking ID to check in: "
+            );
 
             if (!int.TryParse(
-                    bookingInput,
+                    Console.ReadLine(),
                     out int bookingId))
             {
                 Console.WriteLine(
-                    "\n Invalid booking ID.");
+                    "\n Invalid Booking ID."
+                );
 
                 Console.ReadKey();
-
                 return;
             }
 
             Booking? selectedBooking =
                 allBookings.FirstOrDefault(
-                    b => b.BookingID == bookingId);
+                    b =>
+                        b.BookingID ==
+                        bookingId
+                );
 
             if (selectedBooking == null)
             {
                 Console.WriteLine(
-                    "\n Invalid booking!");
+                    "\n Invalid booking!"
+                );
 
                 Console.ReadKey();
-
                 return;
             }
 
@@ -1091,34 +1327,37 @@ namespace SkyFlow
             {
                 Console.WriteLine(
                     $"\n Passenger already " +
-                    $"{selectedBooking.Status}!");
+                    $"{selectedBooking.Status}!"
+                );
 
                 Console.ReadKey();
-
                 return;
             }
 
-            bookingRepo.UpdateBookingStatus(
-                bookingId,
-                "CheckedIn");
-
-            Console.WriteLine(
-                $"\n Passenger {passenger.FullName} " +
-                "checked in successfully!");
-
-            Console.WriteLine(
-                $"  Seat: {selectedBooking.SeatNumber}");
-
-            Flight? flight =
-                flightRepo.GetById(
-                    selectedBooking.FlightID);
-
-            if (flight != null &&
-                flight.AvailableSeats > 0)
+            try
             {
-                flight.AvailableSeats--;
+                bookingRepo.UpdateBookingStatus(
+                    bookingId,
+                    "CheckedIn"
+                );
 
-                flightRepo.Update(flight);
+                Console.WriteLine(
+                    $"\n Passenger " +
+                    $"{passenger.FullName} " +
+                    $"checked in successfully!"
+                );
+
+                Console.WriteLine(
+                    $"  Seat: " +
+                    $"{selectedBooking.SeatNumber}"
+                );
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(
+                    $"\n Unable to check in passenger: " +
+                    $"{ex.Message}"
+                );
             }
 
             Console.ReadKey();
@@ -1129,74 +1368,82 @@ namespace SkyFlow
             Console.Clear();
 
             List<Flight> flights =
-                flightRepo.GetAll()
+                flightRepo
+                    .GetAll()
                     .Where(
-                        f => f.Status == "Boarding" ||
-                             f.Status == "Scheduled")
+                        f =>
+                            f.Status == "Boarding" ||
+                            f.Status == "Scheduled"
+                    )
                     .ToList();
 
             if (!flights.Any())
             {
                 Console.WriteLine(
-                    "No flights available for boarding.");
+                    "No flights available for boarding."
+                );
 
                 Console.ReadKey();
-
                 return;
             }
 
-            RenderFlightTable(flights);
+            RenderFlightTable(
+                flights
+            );
 
             Console.Write(
-                "\nEnter Flight Number for boarding: ");
+                "\nEnter Flight Number for boarding: "
+            );
 
             string flightNum =
-                Console.ReadLine()?.Trim().ToUpper()
-                ?? string.Empty;
+                Console.ReadLine()?
+                    .Trim()
+                    .ToUpper() ?? "";
 
             Flight? flight =
-                flights.FirstOrDefault(
-                    f => f.FlightNumber.Equals(
-                        flightNum,
-                        StringComparison.OrdinalIgnoreCase));
+                flightRepo.GetByFlightNumber(
+                    flightNum
+                );
 
             if (flight == null)
             {
                 Console.WriteLine(
-                    " Flight not found!");
+                    " Flight not found!"
+                );
 
                 Console.ReadKey();
-
                 return;
             }
 
             if (flight.Status != "Boarding")
             {
                 Console.Write(
-                    $"\nFlight {flightNum} is not in " +
-                    "boarding status. Start boarding? (Y/N): ");
+                    $"\nFlight {flightNum} " +
+                    $"is not in boarding status. " +
+                    $"Start boarding? (Y/N): "
+                );
 
-                string startBoarding =
-                    Console.ReadLine()?.Trim().ToUpper()
-                    ?? string.Empty;
+                string confirmation =
+                    Console.ReadLine()?
+                        .Trim()
+                        .ToUpper() ?? "";
 
-                if (startBoarding == "Y")
+                if (confirmation == "Y")
                 {
-                    flight.Status = "Boarding";
+                    flight.Status =
+                        "Boarding";
 
-                    flightRepo.Update(flight);
+                    flightRepo.Update(
+                        flight
+                    );
 
                     Console.WriteLine(
-                        $"\n Boarding started for " +
-                        $"flight {flightNum}");
+                        $"\n Boarding started " +
+                        $"for flight {flightNum}"
+                    );
                 }
                 else
                 {
-                    Console.WriteLine(
-                        "\n Boarding cancelled.");
-
-                    Console.ReadKey();
-
                     return;
                 }
             }
@@ -1204,80 +1451,104 @@ namespace SkyFlow
             List<Booking> checkedInPassengers =
                 bookingRepo
                     .GetBookingsByFlight(
-                        flight.FlightID)
+                        flight.FlightID
+                    )
                     .Where(
-                        b => b.Status == "CheckedIn")
+                        b =>
+                            b.Status ==
+                            "CheckedIn"
+                    )
                     .ToList();
 
             if (!checkedInPassengers.Any())
             {
                 Console.WriteLine(
-                    "\nNo checked-in passengers " +
-                    "for this flight.");
+                    "\nNo checked-in passengers for this flight."
+                );
 
                 Console.ReadKey();
-
                 return;
             }
 
             Console.WriteLine(
-                $"\nFound {checkedInPassengers.Count} " +
-                "checked-in passenger(s).\n");
+                $"\nFound " +
+                $"{checkedInPassengers.Count} " +
+                $"checked-in passenger(s).\n"
+            );
 
             Console.WriteLine(
-                "========== READY FOR BOARDING ==========\n");
+                "========== READY FOR BOARDING ==========\n"
+            );
 
             Console.WriteLine(
                 $"{"Passenger Name",-25} " +
                 $"{"Seat",-8} " +
-                $"{"Status",-12}");
+                $"{"Status",-12}"
+            );
 
             Console.WriteLine(
-                new string('-', 50));
+                new string('-', 50)
+            );
 
-            foreach (Booking passenger
-                     in checkedInPassengers)
+            foreach (
+                Booking passenger
+                in checkedInPassengers)
             {
                 Console.WriteLine(
                     $"{passenger.PassengerName,-25} " +
                     $"{passenger.SeatNumber,-8} " +
-                    $"{passenger.Status,-12}");
+                    $"{passenger.Status,-12}"
+                );
             }
 
             Console.Write(
-                "\nBoard all checked-in passengers? (Y/N): ");
+                "\nBoard all checked-in passengers? (Y/N): "
+            );
 
-            string confirmation =
-                Console.ReadLine()?.Trim().ToUpper()
-                ?? string.Empty;
+            string boardConfirmation =
+                Console.ReadLine()?
+                    .Trim()
+                    .ToUpper() ?? "";
 
-            if (confirmation == "Y")
+            if (boardConfirmation == "Y")
             {
-                foreach (Booking passenger
-                         in checkedInPassengers)
+                try
                 {
-                    bookingRepo.UpdateBookingStatus(
-                        passenger.BookingID,
-                        "Boarded");
+                    foreach (
+                        Booking passenger
+                        in checkedInPassengers)
+                    {
+                        bookingRepo.UpdateBookingStatus(
+                            passenger.BookingID,
+                            "Boarded"
+                        );
+
+                        Console.WriteLine(
+                            $"  Boarded: " +
+                            $"{passenger.PassengerName} " +
+                            $"(Seat {passenger.SeatNumber})"
+                        );
+                    }
+
+                    flight.Status =
+                        "Departed";
+
+                    flightRepo.Update(
+                        flight
+                    );
 
                     Console.WriteLine(
-                        $"  Boarded: " +
-                        $"{passenger.PassengerName} " +
-                        $"(Seat {passenger.SeatNumber})");
+                        $"\n All checked-in passengers boarded! " +
+                        $"Flight {flightNum} has departed."
+                    );
                 }
-
-                flight.Status = "Departed";
-
-                flightRepo.Update(flight);
-
-                Console.WriteLine(
-                    $"\n All passengers boarded! " +
-                    $"Flight {flightNum} has departed.");
-            }
-            else
-            {
-                Console.WriteLine(
-                    "\n Boarding cancelled.");
+                catch (Exception ex)
+                {
+                    Console.WriteLine(
+                        $"\n Unable to complete boarding: " +
+                        $"{ex.Message}"
+                    );
+                }
             }
 
             Console.ReadKey();

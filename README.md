@@ -1,12 +1,14 @@
-# ✈️ SkyFlow - Airport Management System
+# SkyFlow - Airport Management System
 
-SkyFlow is a C# console-based airport management application designed to simulate core airport operations such as flight management, passenger check-in, boarding, staff management, and role-based access control.
+SkyFlow is a C# and .NET airport management application that demonstrates role-based authentication, flight operations, passenger check-in, boarding workflows, SQL Server persistence, automated testing, and continuous integration.
 
-The project demonstrates practical use of Object-Oriented Programming, repository-based architecture, input validation, secure password handling, and relational database design.
+The project was developed by **Ban Kanku** and demonstrates practical software development skills including Object-Oriented Programming, repository architecture, relational database design, secure password handling, input validation, automated testing, and Git version control.
 
-## 📸 Application Preview
+---
 
-### Login & Authentication
+## Application Preview
+
+### Login and Authentication
 
 SkyFlow provides role-based authentication for Administrators and Gate Agents.
 
@@ -26,41 +28,50 @@ Flight schedules display routes, departure times, aircraft capacity, available s
 
 ### Passenger Check-In
 
-Gate Agents can search for passengers using their passenger ID or passport number.
+Gate Agents can search for passengers using a passenger ID or passport number.
 
 ![SkyFlow Passenger Check-In](screenshots/passenger-check-in.png)
 
 ### Successful Check-In
 
-The system updates the passenger's booking status and displays their assigned seat after a successful check-in.
+After a successful check-in, the passenger's booking status is persisted in SQL Server and the assigned seat is displayed.
 
 ![SkyFlow Check-In Success](screenshots/check-in-success.png)
 
-## 🚀 Key Features
+---
 
-### 🔐 Authentication & Security
+## Key Features
+
+### Authentication and Security
+
+SkyFlow includes:
 
 - Role-based authentication for Administrators and Gate Agents
-- Passwords are hashed using PBKDF2 with SHA-256 and unique random salts
+- PBKDF2 password hashing with SHA-256
+- Unique random password salts
 - Constant-time password hash comparison
-- Password masking during login and staff creation
+- Masked password entry
 - Case-insensitive username authentication
-- Input validation for login and user creation
+- Input validation
+- SQL-backed user authentication
+- Environment-variable support for database configuration
 
-### 👨‍💼 Administrator
+Development accounts are created automatically when the `Users` table is empty. Passwords are hashed before being stored in SQL Server.
+
+### Administrator Features
 
 Administrators can:
 
-- View all scheduled flights
+- View scheduled flights
 - Add new flights
-- Update flight status
-- Delete flights
+- Update flight information and status
+- Delete eligible flights
 - View system statistics
-- Monitor overall flight occupancy
-- View the staff directory
-- Create new Administrator or Gate Agent accounts
+- Monitor flight occupancy
+- View staff accounts
+- Create Administrator and Gate Agent accounts
 
-### 🧑‍✈️ Gate Agent
+### Gate Agent Features
 
 Gate Agents can:
 
@@ -68,75 +79,75 @@ Gate Agents can:
 - Search passengers by ID or passport number
 - View passenger booking information
 - Check passengers in
-- View assigned seat numbers
+- View assigned seats
 - Start the boarding process
 - Board checked-in passengers
-- Update flights to departed status
+- Update flight status during airport operations
 
-## 🛫 Flight Management
+---
 
-SkyFlow maintains information including:
+## SQL Server Persistence
 
-- Flight number
-- Origin
-- Destination
-- Departure date and time
-- Aircraft capacity
-- Available seats
-- Flight status
+SkyFlow uses **SQL Server** as its runtime persistence layer and **Dapper** for database access.
 
-The application validates flight information before a new flight is created, including duplicate flight numbers, aircraft capacity, and route information.
+The application contains dedicated SQL repositories:
 
-## 👤 Passenger Management
+```text
+SqlUserRepository
+SqlFlightRepository
+SqlPassengerRepository
+SqlBookingRepository
+```
 
-Passenger records contain:
+These repositories perform database operations for users, flights, passengers, and bookings.
 
-- Passenger ID
-- Passport number
-- Full name
-- Email address
-- Phone number
+The application connects to SQL Server through `DatabaseConnection.cs`.
 
-Passengers can be searched using either their unique ID or passport number.
+A custom database connection can be supplied using:
 
-All passenger information included with the project is synthetic demonstration data.
+```text
+SKYFLOW_CONNECTION_STRING
+```
 
-## 🎫 Booking & Check-In
+This allows the database configuration to be changed without modifying application source code.
 
-Bookings connect passengers to flights and include:
+---
 
-- Booking ID
-- Flight
-- Passenger
-- Seat number
-- Booking status
-- Booking date
+## Database Design
 
-Supported booking states include:
+The SQL Server database is named:
 
-- Confirmed
-- CheckedIn
-- Boarded
+```text
+SkyFlowDB
+```
 
-The check-in workflow updates booking status and flight seat availability.
-
-## 🗄️ Database Design
-
-SkyFlow includes a SQL Server database setup script for `SkyFlowDB`.
-
-The database contains four main tables:
+The system uses four primary tables:
 
 ```text
 Users
-  |
-  | authentication and staff information
-  |
-Flights -------- Bookings -------- Passengers
+Flights
+Passengers
+Bookings
 ```
 
-### Tables
+Their main relationship is:
 
-**Users**
+```text
+Passengers
+    |
+    |
+Bookings -------- Flights
+
+Users
+    |
+    |
+Authentication and Staff Management
+```
+
+### Users
+
+Stores staff authentication and account information:
+
 - UserID
 - Username
 - PasswordHash
@@ -144,7 +155,10 @@ Flights -------- Bookings -------- Passengers
 - Role
 - CreatedDate
 
-**Flights**
+### Flights
+
+Stores flight information:
+
 - FlightID
 - FlightNumber
 - Origin
@@ -154,14 +168,20 @@ Flights -------- Bookings -------- Passengers
 - AvailableSeats
 - Status
 
-**Passengers**
+### Passengers
+
+Stores passenger information:
+
 - PassengerID
 - PassportNumber
 - FullName
 - Email
 - PhoneNumber
 
-**Bookings**
+### Bookings
+
+Connects passengers to flights:
+
 - BookingID
 - FlightID
 - PassengerID
@@ -169,10 +189,10 @@ Flights -------- Bookings -------- Passengers
 - Status
 - BookingDate
 
-The SQL schema includes:
+The database schema includes:
 
 - Primary keys
-- Foreign-key relationships
+- Foreign keys
 - Unique constraints
 - Role validation
 - Flight-status validation
@@ -180,113 +200,215 @@ The SQL schema includes:
 - Aircraft-capacity validation
 - Duplicate-seat prevention
 
-> **Current implementation note:** The application currently uses in-memory repositories for its runtime demonstration data. The included SQL Server schema represents the persistence layer being prepared for full database-backed repository integration.
+All passenger information included with the project is synthetic demonstration data.
 
-## 🧠 Object-Oriented Programming
+---
 
-SkyFlow demonstrates several important OOP concepts.
+## Passenger Check-In Workflow
+
+The check-in workflow demonstrates interaction between the application and SQL Server.
+
+A Gate Agent can:
+
+1. Search for a passenger by ID or passport number.
+2. Retrieve the passenger from SQL Server.
+3. View bookings associated with the passenger.
+4. Select a confirmed booking.
+5. Check the passenger in.
+6. Persist the new `CheckedIn` status in SQL Server.
+
+Because the booking status is stored in the database, the change remains available after the application is restarted.
+
+---
+
+## Boarding Workflow
+
+SkyFlow also supports a boarding workflow.
+
+Gate Agents can select an eligible flight, start boarding, retrieve checked-in passengers, update passenger booking statuses to `Boarded`, and update the flight status as airport operations progress.
+
+---
+
+## Object-Oriented Programming
+
+SkyFlow demonstrates several OOP principles.
 
 ### Inheritance
 
-`Admin` and `GateAgent` inherit common functionality from the base `User` class.
+`Admin` and `GateAgent` inherit common user functionality from the base `User` class.
 
 ```text
 User
-├── Admin
-└── GateAgent
+|-- Admin
+|-- GateAgent
 ```
 
 ### Polymorphism
 
-The abstract `DisplayDashboard()` method allows each user type to display a different dashboard at runtime.
+User types can provide role-specific behaviour through methods such as `DisplayDashboard()`.
 
 ### Encapsulation
 
-Application data and repository operations are organized into dedicated models and repository classes.
+Models, repositories, services, and database operations are separated into dedicated classes.
 
 ### Abstraction
 
-Interfaces and repository classes help separate application logic from data-access responsibilities.
+Interfaces and repository classes separate application behaviour from data-access responsibilities.
 
-## 🏗️ Project Structure
+---
+
+## Repository Architecture
+
+SkyFlow separates application models from data access.
+
+The SQL-backed runtime repositories are:
+
+```text
+SqlUserRepository
+SqlFlightRepository
+SqlPassengerRepository
+SqlBookingRepository
+```
+
+The original in-memory repositories remain in the project to support isolated automated unit tests without requiring a SQL Server instance during CI execution.
+
+This allows the application to use persistent SQL data in normal operation while keeping automated tests fast and independent.
+
+---
+
+## Automated Testing
+
+SkyFlow includes an **xUnit automated test project**.
+
+The current test suite contains **17 automated tests** covering the in-memory repository layer, including:
+
+- User authentication
+- Invalid login handling
+- Case-insensitive usernames
+- Flight retrieval
+- Flight creation
+- Passenger retrieval
+- Passport searches
+- Passenger creation
+- Booking retrieval
+- Booking creation
+
+Run the tests with:
+
+```bash
+dotnet test SkyFlow.Tests/SkyFlow.Tests.csproj
+```
+
+The test repositories are intentionally isolated from the SQL Server runtime repositories so the unit-test suite can execute without an external database.
+
+---
+
+## Continuous Integration
+
+SkyFlow uses **GitHub Actions** for automated build and test validation.
+
+For every push or pull request to `main`, the workflow:
+
+1. Checks out the repository.
+2. Configures .NET.
+3. Restores application dependencies.
+4. Restores test dependencies.
+5. Builds the application in Release configuration.
+6. Runs the automated xUnit test suite.
+
+This helps detect build failures and test regressions before changes are accepted.
+
+---
+
+## Project Structure
 
 ```text
 SkyFlow_Git/
-│
-├── README.md
-├── .gitignore
-├── screenshots/
-│   ├── admin-dashboard.png
-│   ├── check-in-success.png
-│   ├── flight-schedule.png
-│   ├── login.png
-│   └── passenger-check-in.png
-│
-└── SkyFlow/
-    │
-    ├── Database/
-    │   ├── BookingRepository.cs
-    │   ├── DatabaseConnection.cs
-    │   ├── FlightRepository.cs
-    │   ├── PassengerRepository.cs
-    │   └── UserRepository.cs
-    │
-    ├── Interfaces/
-    │   ├── IDataRepository.cs
-    │   └── IDisplayable.cs
-    │
-    ├── Models/
-    │   ├── Admin.cs
-    │   ├── Booking.cs
-    │   ├── Flight.cs
-    │   ├── GateAgent.cs
-    │   ├── Passenger.cs
-    │   └── User.cs
-    │
-    ├── Services/
-    │   └── TableRenderer.cs
-    │
-    ├── SQL/
-    │   └── SETUPDATABASE.SQL
-    │
-    ├── Program.cs
-    └── SkyFlow.csproj
+|
+|-- .github/
+|   `-- workflows/
+|       `-- dotnet-build.yml
+|
+|-- screenshots/
+|   |-- admin-dashboard.png
+|   |-- check-in-success.png
+|   |-- flight-schedule.png
+|   |-- login.png
+|   `-- passenger-check-in.png
+|
+|-- SkyFlow/
+|   |
+|   |-- Database/
+|   |   |-- BookingRepository.cs
+|   |   |-- DatabaseConnection.cs
+|   |   |-- DatabaseSeeder.cs
+|   |   |-- FlightRepository.cs
+|   |   |-- PassengerRepository.cs
+|   |   |-- SqlBookingRepository.cs
+|   |   |-- SqlFlightRepository.cs
+|   |   |-- SqlPassengerRepository.cs
+|   |   |-- SqlUserRepository.cs
+|   |   `-- UserRepository.cs
+|   |
+|   |-- Interfaces/
+|   |   |-- IDataRepository.cs
+|   |   `-- IDisplayable.cs
+|   |
+|   |-- Models/
+|   |   |-- Admin.cs
+|   |   |-- Booking.cs
+|   |   |-- Flight.cs
+|   |   |-- GateAgent.cs
+|   |   |-- Passenger.cs
+|   |   `-- User.cs
+|   |
+|   |-- Services/
+|   |   `-- TableRenderer.cs
+|   |
+|   |-- SQL/
+|   |   `-- SETUPDATABASE.SQL
+|   |
+|   |-- Program.cs
+|   `-- SkyFlow.csproj
+|
+|-- SkyFlow.Tests/
+|   `-- Automated xUnit tests
+|
+|-- README.md
+`-- .gitignore
 ```
 
-## 🛠️ Technologies
+---
+
+## Technologies
+
+SkyFlow uses:
 
 - C#
-- .NET
+- .NET 10
 - SQL Server
-- Microsoft.Data.SqlClient
+- SQL Server Express
 - Dapper
+- Microsoft.Data.SqlClient
+- xUnit
 - LINQ
 - Git
 - GitHub
+- GitHub Actions
 
-## 🔒 Security Improvements
+---
 
-The project includes several security-focused improvements:
-
-- PBKDF2 password hashing
-- SHA-256 password derivation
-- Random password salts
-- Constant-time password verification
-- Masked password entry
-- Environment-variable support for custom database connection strings
-- No production credentials stored in the repository
-
-For demonstration purposes, development login credentials are shown by the application when it starts.
-
-## ⚙️ Getting Started
+## Getting Started
 
 ### Requirements
 
 Install:
 
-- .NET SDK
+- .NET 10 SDK
+- SQL Server Express
 - Git
-- SQL Server LocalDB or SQL Server if using the included database schema
+
+`sqlcmd` is useful for creating and inspecting the development database from the command line.
 
 ### Clone the Repository
 
@@ -294,6 +416,42 @@ Install:
 git clone https://github.com/BanKanku/SkyFlow_Git.git
 cd SkyFlow_Git
 ```
+
+### Create the Database
+
+The SQL Server setup script is located at:
+
+```text
+SkyFlow/SQL/SETUPDATABASE.SQL
+```
+
+The default development SQL Server instance is:
+
+```text
+.\SQLEXPRESS
+```
+
+The default database is:
+
+```text
+SkyFlowDB
+```
+
+With SQL Server Express and `sqlcmd` installed, the setup script can be executed from the repository root with:
+
+```cmd
+sqlcmd -S .\SQLEXPRESS -E -C -i "SkyFlow\SQL\SETUPDATABASE.SQL"
+```
+
+### Optional Custom Connection String
+
+Instead of the default SQL Express connection, set:
+
+```text
+SKYFLOW_CONNECTION_STRING
+```
+
+to a valid SQL Server connection string before starting the application.
 
 ### Build
 
@@ -307,71 +465,91 @@ dotnet build SkyFlow/SkyFlow.csproj
 dotnet run --project SkyFlow/SkyFlow.csproj
 ```
 
-## 🗃️ Optional SQL Server Setup
+---
 
-The SQL database schema is located at:
+## Demo Accounts
 
-```text
-SkyFlow/SQL/SETUPDATABASE.SQL
-```
-
-The default development connection targets:
+For demonstration purposes, SkyFlow creates development accounts when the `Users` table is empty.
 
 ```text
-(localdb)\MSSQLLocalDB
+Administrator
+Username: admin
+Password: admin123
+
+Gate Agent
+Username: agent1
+Password: agent123
 ```
 
-and the database:
+The development passwords are converted to salted PBKDF2 hashes before they are stored in the SQL Server `Users` table.
 
-```text
-SkyFlowDB
-```
+These accounts are intended only for local demonstration and portfolio use.
 
-A custom connection string can be supplied through the environment variable:
+---
 
-```text
-SKYFLOW_CONNECTION_STRING
-```
+## Security Features
 
-The current runtime repositories use in-memory data, so SQL Server is not required simply to run the console demonstration.
+The project demonstrates several security-focused development practices:
 
-## 📚 Skills Demonstrated
+- PBKDF2 password hashing
+- SHA-256 password derivation
+- Unique random salts
+- Constant-time password verification
+- Masked password input
+- Parameterized database queries through Dapper
+- Input validation
+- Role-based access control
+- Environment-variable database configuration
 
-This project demonstrates experience with:
+The included demo credentials are development credentials and should be replaced in a production deployment.
+
+---
+
+## Skills Demonstrated
+
+This project demonstrates practical experience with:
 
 - C# application development
+- .NET
 - Object-Oriented Programming
-- Repository design
+- SQL Server
+- Dapper
+- Repository architecture
+- Relational database modelling
+- Authentication and password security
+- Role-based access control
 - LINQ
-- Authentication logic
-- Password security
 - Input validation
 - Exception handling
-- SQL database design
-- Relational data modelling
+- Automated unit testing with xUnit
+- Continuous integration with GitHub Actions
 - Git version control
-- Console UI development
+- Console application development
 
-## 🔮 Planned Improvements
+---
 
-Future development can include:
+## Future Improvements
 
-- Full SQL-backed repository implementation
-- Passenger and booking creation
+Possible future improvements include:
+
+- SQL Server integration tests
+- Passenger and booking administration
+- Transaction-based boarding operations
+- Improved seat inventory management
 - Flight search and filtering
-- Seat assignment validation
 - CSV flight-manifest export
 - Audit logging
-- Automated unit tests
 - Additional reporting and analytics
 - Migration to a desktop or web-based interface
 
-## 👨‍💻 Developer
+---
+
+## Developer
 
 **Ban Kanku**
 
 IT Student & Software Developer
 
-C# • Java • Python • SQL
+C# | Java | Python | SQL
 
 GitHub: **BanKanku**

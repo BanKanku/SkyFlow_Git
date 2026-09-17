@@ -5,23 +5,37 @@ namespace SkyFlow.Database
 {
     public static class DatabaseConnection
     {
-        // For LocalDB (comes with Visual Studio)
-        private static string connectionString = @"Server=(localdb)\MSSQLLocalDB;Database=master;Trusted_Connection=True;";
+        private const string DefaultConnectionString =
+            @"Server=(localdb)\MSSQLLocalDB;Database=SkyFlowDB;Trusted_Connection=True;TrustServerCertificate=True;";
+
+        public static string GetConnectionString()
+        {
+            string? environmentConnection =
+                Environment.GetEnvironmentVariable("SKYFLOW_CONNECTION_STRING");
+
+            return string.IsNullOrWhiteSpace(environmentConnection)
+                ? DefaultConnectionString
+                : environmentConnection;
+        }
 
         public static bool TestConnection()
         {
             try
             {
-                using (SqlConnection conn = new SqlConnection(connectionString))
-                {
-                    conn.Open();
-                    Console.WriteLine("✓ Database connected!");
-                    return true;
-                }
+                using SqlConnection connection =
+                    new SqlConnection(GetConnectionString());
+
+                connection.Open();
+
+                Console.WriteLine("✓ Database connected successfully!");
+
+                return true;
             }
-            catch (Exception ex)
+            catch (SqlException ex)
             {
-                Console.WriteLine($"✗ Database error: {ex.Message}");
+                Console.WriteLine(
+                    $"✗ Database connection failed: {ex.Message}");
+
                 return false;
             }
         }

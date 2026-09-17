@@ -7,7 +7,7 @@ namespace SkyFlow.Database
 {
     public class FlightRepository
     {
-        private static List<Flight> flights = new List<Flight>();
+        private static readonly List<Flight> flights = new List<Flight>();
 
         public FlightRepository()
         {
@@ -24,6 +24,7 @@ namespace SkyFlow.Database
                     AvailableSeats = 148,
                     Status = "Scheduled"
                 });
+
                 flights.Add(new Flight
                 {
                     FlightID = 2,
@@ -35,6 +36,7 @@ namespace SkyFlow.Database
                     AvailableSeats = 115,
                     Status = "Scheduled"
                 });
+
                 flights.Add(new Flight
                 {
                     FlightID = 3,
@@ -54,20 +56,25 @@ namespace SkyFlow.Database
             return flights;
         }
 
-        public Flight GetById(int id)
+        public Flight? GetById(int id)
         {
             return flights.FirstOrDefault(f => f.FlightID == id);
         }
 
         public void Add(Flight flight)
         {
-            flight.FlightID = flights.Count + 1;
+            flight.FlightID = flights.Count == 0
+                ? 1
+                : flights.Max(f => f.FlightID) + 1;
+
             flights.Add(flight);
         }
 
         public void Update(Flight flight)
         {
-            var existing = flights.FirstOrDefault(f => f.FlightID == flight.FlightID);
+            Flight? existing =
+                flights.FirstOrDefault(f => f.FlightID == flight.FlightID);
+
             if (existing != null)
             {
                 existing.FlightNumber = flight.FlightNumber;
@@ -82,9 +89,13 @@ namespace SkyFlow.Database
 
         public void Delete(int id)
         {
-            var flight = flights.FirstOrDefault(f => f.FlightID == id);
+            Flight? flight =
+                flights.FirstOrDefault(f => f.FlightID == id);
+
             if (flight != null)
+            {
                 flights.Remove(flight);
+            }
         }
     }
 }

@@ -4,6 +4,38 @@ SkyFlow is a C# console-based airport management application designed to simulat
 
 The project demonstrates practical use of Object-Oriented Programming, repository-based architecture, input validation, secure password handling, and relational database design.
 
+## 📸 Application Preview
+
+### Login & Authentication
+
+SkyFlow provides role-based authentication for Administrators and Gate Agents.
+
+![SkyFlow Login](screenshots/login.png)
+
+### Administrator Dashboard
+
+Administrators can manage flights, view system information, and manage staff accounts.
+
+![SkyFlow Administrator Dashboard](screenshots/admin-dashboard.png)
+
+### Flight Management
+
+Flight schedules display routes, departure times, aircraft capacity, available seats, and current flight status.
+
+![SkyFlow Flight Schedule](screenshots/flight-schedule.png)
+
+### Passenger Check-In
+
+Gate Agents can search for passengers using their passenger ID or passport number.
+
+![SkyFlow Passenger Check-In](screenshots/passenger-check-in.png)
+
+### Successful Check-In
+
+The system updates the passenger's booking status and displays their assigned seat after a successful check-in.
+
+![SkyFlow Check-In Success](screenshots/check-in-success.png)
+
 ## 🚀 Key Features
 
 ### 🔐 Authentication & Security
@@ -183,6 +215,12 @@ SkyFlow_Git/
 │
 ├── README.md
 ├── .gitignore
+├── screenshots/
+│   ├── admin-dashboard.png
+│   ├── check-in-success.png
+│   ├── flight-schedule.png
+│   ├── login.png
+│   └── passenger-check-in.png
 │
 └── SkyFlow/
     │
@@ -334,6 +372,6 @@ Future development can include:
 
 IT Student & Software Developer
 
-Technologies: C# • Java • Python • SQL
+C# • Java • Python • SQL
 
 GitHub: **BanKanku**
